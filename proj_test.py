@@ -199,8 +199,8 @@ def GetPPI_with_SORA(filename, annotation_BP, annotation_MF, ontology_BP, ontolo
         if line_count % int(total_line / 1000) == 0:
             progress = round(line_count * 100 / total_line, 3)
             print("Progress : {0}%".format(progress))
-            if progress >= 0.5:
-                return gene_sim
+            # if progress >= 0.01:
+            #     return gene_sim
             
         line = file.readline().split()
         print("line : ", line)
@@ -226,40 +226,44 @@ def GetPPI_with_SORA(filename, annotation_BP, annotation_MF, ontology_BP, ontolo
         sim_BP_list = list()
         sim_MF_list = list()
         
-
+        redundant_list_BP = list()
         if isinBP:
-            #* BP에만 속한 경우
+            #* BP에 속한 경우
             for v1bp in annotation_dict_BP[gene1]:
                 C1_BP = v1bp
                 for v2bp in annotation_dict_BP[gene2]:
-
                     C2_BP = v2bp
+                    if {C1_BP,C2_BP} in redundant_list_BP:
+                        continue
+                    
                     sim_BP = GetSimilarityUsingSORA(
                         C1_BP, C2_BP, ontology_BP, annotation_BP,root_BP,longest_path_length_BP
                     )
                     sim_BP_list.append(sim_BP)
+                    redundant_list_BP.append({C1_BP,C2_BP})
                     
                 #max_BP_list.append(max(sim_BP_list))
             avg_BP = sum(sim_BP_list)/len(sim_BP_list)
             
-
+        redundant_list_MF = list()
         if isinMF:
-            #* MF에만 속한 경우
+            #* MF에 속한 경우
             
             #print("longest term : ", longest_term)
             #print("longest path length : ", longest_path_length)
             for v1mf in annotation_dict_MF[gene1]:
                 C1_MF = v1mf
                 for v2mf in annotation_dict_MF[gene2]:
-
                     C2_MF = v2mf
-                    
+                    if {C1_MF,C2_MF} in redundant_list_MF:
+                        continue
                     
                     sim_MF = GetSimilarityUsingSORA(
                         C1_MF, C2_MF, ontology_MF, annotation_MF,root_MF,longest_path_length_MF
                     )
 
                     sim_MF_list.append(sim_MF)
+                    redundant_list_MF.append({C1_MF,C2_MF})
                 #max_MF_list.append(max(sim_MF_list))
             avg_MF = sum(sim_MF_list)/len(sim_MF_list)
             
@@ -318,7 +322,7 @@ def GetSimilarityUsingSORA(C1, C2, ontology, annotation,root_node,longest_path_l
     similarity = 2 * IC_C0 / (IC_C1+IC_C2) # 이 값이 1.0 이하라는게 보장이 되지 않는다.
     if similarity > 1.0:
         similarity = 1.0
-    #print("similarity : ", similarity)
+    #print(C1,C2," similarity : ", similarity)
     return similarity
 
 
@@ -498,62 +502,14 @@ def roc_curve(gene_sim,SE,OMSP):
     
         SE.append(TP_num / (TP_num+FN_num))
         OMSP.append(FP_num / (TN_num+FP_num))
-        print("= = = = = ")
-        print(SE[threshold])
-        print(OMSP[threshold])
-        print("SE[threshold] * OMSP[threshold] : ", SE[threshold] * OMSP[threshold])
+        #print("= = = = = ")
+        #print(SE[threshold])
+        #print(OMSP[threshold])
+        #print("SE[threshold] * OMSP[threshold] : ", SE[threshold] * OMSP[threshold])
         AUC_value += SE[threshold] * OMSP[threshold]
         threshold += 1
     
     return gene_sim, SE, OMSP, AUC_value
-
-#def roc_curve(gene_sim,SE,OMSP):
-    threshold = 0 #* line number
-    # SE_ = list()
-    # OMSP_ = list()
-    
-    while True:
-        TP_num=0
-        FP_num=0
-        FN_num=0
-        TN_num = 0 #* init value
-        #print("\n\n\ ================\n\n")
-        if threshold+1 > len(gene_sim):
-            break
-        for element in gene_sim[:threshold+1]:
-            
-            if len(element) == 4:
-                element.append(0) #* init value
-            
-            if element[3] == "P":
-                element[4] = "TP"
-                #print(element)
-                TP_num += 1
-            else: #* element[3] == "N"
-                element[4] = "FP"
-                #print(element)
-                FP_num += 1
-        #print("==================Threshold")
-
-        for element in gene_sim[threshold+1:]:
-            if len(element) == 4:
-                element.append(0) #* init value
-
-            if element[3] == "P":
-                element[4] = "FN"
-                #print(element)
-                FN_num += 1
-            else: #* element[3] == "N"
-                element[4] = "TN"
-                #print(element)
-                TN_num += 1
-        
-        SE.append(TP_num / (TP_num+FN_num))
-        OMSP.append(FP_num / (TN_num+FP_num))
-        threshold += 1
-    
-    return gene_sim, SE, OMSP
-
 
 
     
