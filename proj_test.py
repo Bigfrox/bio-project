@@ -704,3 +704,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+#! Getcoverage 부분을 미리 만들어두면 훨씬 빠를듯
